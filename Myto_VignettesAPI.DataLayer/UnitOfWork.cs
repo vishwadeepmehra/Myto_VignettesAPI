@@ -14,11 +14,13 @@ namespace Myto_VignettesAPI.DataLayer
 
         public IUserRepository Users { get; }
         public IAuthRepository Auths { get; }
-        public UnitOfWork(VignettesContext context, IUserRepository users, IAuthRepository auths)
+        public IVehicleRepository Vehicles { get; }
+        public UnitOfWork(VignettesContext context, IUserRepository users, IAuthRepository auths, IVehicleRepository vehicles)
         {
             _context = context;
             Users = users;
             Auths = auths;
+            Vehicles = vehicles;
         }
 
         public async Task<int> SaveChangesAsync()

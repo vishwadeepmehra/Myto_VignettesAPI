@@ -11,6 +11,7 @@ namespace Myto_VignettesAPI.DataLayer
     {
         IUserRepository Users { get; }
         IAuthRepository Auths { get; }
+        IVehicleRepository Vehicles { get; }
 
         Task<int> SaveChangesAsync();    
 }
