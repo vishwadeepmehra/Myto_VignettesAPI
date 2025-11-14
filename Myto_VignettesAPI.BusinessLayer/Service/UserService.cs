@@ -1,4 +1,5 @@
-﻿using Myto_VignettesAPI.AppModel.ResponseModel;
+﻿using Myto_VignettesAPI.AppModel.RequestModel;
+using Myto_VignettesAPI.AppModel.ResponseModel;
 using Myto_VignettesAPI.BusinessLayer.IService;
 using Myto_VignettesAPI.DataLayer;
 using Myto_VignettesAPI.DataLayer.AppDbContext;
@@ -14,7 +15,7 @@ namespace Myto_VignettesAPI.BusinessLayer.Service
         {
             _unitOfWork = unitOfWork;
         }
-        public async Task<ResponseDetail> CreateAsync(User user)
+        public async Task<ResponseDetail> CreateAsync(UserCreateRequest user)
         {
             var response = await _unitOfWork.Users.CreateAsync(user);
 

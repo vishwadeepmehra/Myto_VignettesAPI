@@ -1,4 +1,5 @@
-﻿using Myto_VignettesAPI.AppModel.ResponseModel;
+﻿using Myto_VignettesAPI.AppModel.RequestModel;
+using Myto_VignettesAPI.AppModel.ResponseModel;
 using Myto_VignettesAPI.DataLayer.AppDbContext;
 using System;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ namespace Myto_VignettesAPI.DataLayer.DataInterface
 {
     public interface IUserRepository
     {
-        Task<ResponseDetail> CreateAsync(User user);
+        Task<ResponseDetail> CreateAsync(UserCreateRequest user);
 
         Task<ResponseDetail> GetByIdAsync(long id);
 

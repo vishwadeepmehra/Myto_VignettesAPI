@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Myto_VignettesAPI.AppModel.RequestModel;
 using Myto_VignettesAPI.AppModel.ResponseModel;
 using Myto_VignettesAPI.DataLayer.AppDbContext;
 using Myto_VignettesAPI.DataLayer.DataInterface;
@@ -20,14 +21,14 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
         {
             _context = context;
         }
-        public async Task<ResponseDetail> CreateAsync(User user)
+        public async Task<ResponseDetail> CreateAsync(UserCreateRequest model)
         {
             var response = new ResponseDetail();
 
             try
             {
-                // ✅ Validate
-                if (user == null || string.IsNullOrWhiteSpace(user.PasswordHash))
+                // ✅ Validate input
+                if (model == null || string.IsNullOrWhiteSpace(model.Password))
                 {
                     response.Message = "User details or password cannot be empty.";
                     response.StatusCode = HttpStatusCode.BadRequest;
@@ -35,9 +36,17 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
+                if (string.IsNullOrWhiteSpace(model.Email))
+                {
+                    response.Message = "Email is required.";
+                    response.StatusCode = HttpStatusCode.BadRequest;
+                    response.IsError = true;
+                    return response;
+                }
+
                 // ✅ Check if email already exists
                 var existingUser = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Email == user.Email);
+                    .FirstOrDefaultAsync(u => u.Email == model.Email);
 
                 if (existingUser != null)
                 {
@@ -47,21 +56,31 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // ✅ Hash password before save
-                user.PasswordHash = ToSHA256(user.PasswordHash!);
+                // ✅ Hash password
+                var hashedPassword = ToSHA256(model.Password);
 
-                // ✅ Default values
-                user.CreatedAt = DateTime.UtcNow;
-                user.UpdatedAt = DateTime.UtcNow;
-                user.IsEmailVerified ??= false;
+                // ✅ Map DTO → Entity
+                var user = new User
+                {
+                    Name = model.Name,
+                    Email = model.Email,
+                    Mobile = model.Mobile,
+                    PasswordHash = hashedPassword,
+                    PreferredLanguage = model.PreferredLanguage,
+                    IsEmailVerified = false,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
 
                 // ✅ Save to DB
-                _context.Users.Add(user);
+                await _context.Users.AddAsync(user);
                 await _context.SaveChangesAsync();
 
-                // ✅ Response
+                // ✅ Build Response
                 response.Message = "User registered successfully.";
                 response.StatusCode = HttpStatusCode.Created;
+                response.IsError = false;
+                response.DataLength = 1;
                 response.Data = new
                 {
                     user.Id,
@@ -70,8 +89,6 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     user.Mobile,
                     user.PreferredLanguage
                 };
-                response.DataLength = 1;
-                response.IsError = false;
             }
             catch (Exception ex)
             {

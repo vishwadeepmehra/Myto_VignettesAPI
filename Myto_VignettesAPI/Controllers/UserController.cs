@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Myto_VignettesAPI.AppModel.RequestModel;
 using Myto_VignettesAPI.BusinessLayer.IService;
 using Myto_VignettesAPI.DataLayer.AppDbContext;
 using System.Net;
@@ -65,7 +66,7 @@ namespace Myto_VignettesAPI.Controllers
         [AllowAnonymous]
         [ProducesResponseType(typeof(User), (int)HttpStatusCode.Created)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
-        public async Task<IActionResult> CreateAsync([FromBody] User user)
+        public async Task<IActionResult> CreateAsync([FromBody] UserCreateRequest user)
         {
             if (user == null)
                 return BadRequest("User object cannot be null.");
