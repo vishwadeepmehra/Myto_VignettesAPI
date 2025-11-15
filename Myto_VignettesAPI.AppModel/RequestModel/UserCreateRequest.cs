@@ -13,5 +13,7 @@ namespace Myto_VignettesAPI.AppModel.RequestModel
         public string? Mobile { get; set; }
         public string? Password { get; set; }
         public string? PreferredLanguage { get; set; }
+        public string Role { get; set; } = "Customer";
     }
+
 }

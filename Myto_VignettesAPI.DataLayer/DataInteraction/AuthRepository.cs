@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Myto_VignettesAPI.AppModel.RequestModel;
 using Myto_VignettesAPI.AppModel.ResponseModel;
@@ -36,8 +37,18 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
 
             try
             {
-                // 1️⃣ Fetch user by email
-                var user = _context.Users.FirstOrDefault(u => u.Email == loginRequest.Email);
+                // 1️⃣ Validate input
+                if (string.IsNullOrWhiteSpace(loginRequest.Email) ||
+                    string.IsNullOrWhiteSpace(loginRequest.Password))
+                {
+                    response.Message = "Email and password are required.";
+                    response.IsError = true;
+                    response.StatusCode = HttpStatusCode.BadRequest;
+                    return response;
+                }
+
+                // 2️⃣ Fetch user by email
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginRequest.Email);
                 if (user == null)
                 {
                     response.Message = "Invalid email or password.";
@@ -46,7 +57,25 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // 2️⃣ Verify password using SHA256
+                // 3️⃣ Block login if user is invited (no password yet)
+                if (user.IsInvited == true)
+                {
+                    response.Message = "Account not activated. Please set your password.";
+                    response.IsError = true;
+                    response.StatusCode = HttpStatusCode.Forbidden;
+                    return response;
+                }
+
+                // 4️⃣ Ensure password exists for this account
+                if (string.IsNullOrWhiteSpace(user.PasswordHash))
+                {
+                    response.Message = "Account has no password. Please activate your account.";
+                    response.IsError = true;
+                    response.StatusCode = HttpStatusCode.Forbidden;
+                    return response;
+                }
+
+                // 5️⃣ Verify password using SHA256
                 var hashedInputPassword = ToSHA256(loginRequest.Password);
 
                 if (!string.Equals(hashedInputPassword, user.PasswordHash, StringComparison.OrdinalIgnoreCase))
@@ -57,7 +86,7 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // 3️⃣ Optional: Check if email is verified
+                // 6️⃣ Check if email is verified (optional)
                 if (user.IsEmailVerified == false)
                 {
                     response.Message = "Email not verified.";
@@ -66,33 +95,30 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // 4️⃣ Build claims
+                // 7️⃣ Build claims
                 var claims = new List<Claim>
-                {
-                    new Claim("UserId", user.Id.ToString()),
-                    new Claim(ClaimTypes.Name, user.Name ?? string.Empty),
-                    new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                };
+        {
+            new Claim("UserId", user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Name ?? string.Empty),
+            new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+            new Claim(ClaimTypes.Role, user.Role ?? "Customer"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
 
-                // Add Role (if implemented later)
-                var roleName = "User";
-                claims.Add(new Claim(ClaimTypes.Role, roleName));
-
-                // 5️⃣ Create token
+                // 8️⃣ Generate JWT token
                 var token = CreateToken(claims);
                 var tokenValue = new JwtSecurityTokenHandler().WriteToken(token);
-
-                var tokenDetails = new
-                {
-                    Token = tokenValue,
-                    Expiration = token.ValidTo
-                };
 
                 response.Message = "Login successful.";
                 response.IsError = false;
                 response.StatusCode = HttpStatusCode.OK;
-                response.Data = tokenDetails;
+                response.Data = new
+                {
+                    Token = tokenValue,
+                    Expiration = token.ValidTo,
+                    user.Id,
+                    user.Role
+                };
                 response.DataLength = 1;
             }
             catch (Exception ex)
