@@ -67,7 +67,7 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     Mobile = model.Mobile,
                     PasswordHash = hashedPassword,
                     PreferredLanguage = model.PreferredLanguage,
-                    IsEmailVerified = false,
+                    IsEmailVerified = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
