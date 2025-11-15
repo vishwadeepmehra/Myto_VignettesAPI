@@ -189,13 +189,18 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
         public async Task<ResponseDetail> GetAllByUserAsync(int pageIndex = 0, int pageSize = 20)
         {
             var response = new ResponseDetail();
+
             try
             {
                 IQueryable<Vehicle> query = _context.Vehicles
+                    .AsNoTracking()
+                    .Include(v => v.User)                // Include user details
                     .OrderByDescending(v => v.CreatedAt);
 
                 List<Vehicle> vehicles;
-                if (pageSize == 0)
+
+                // Return all data if pageSize = 0
+                if (pageSize <= 0)
                 {
                     vehicles = await query.ToListAsync();
                 }
@@ -207,10 +212,35 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                         .ToListAsync();
                 }
 
+                // Shape output
+                var result = vehicles.Select(v => new
+                {
+                    v.Id,
+                    v.UserId,
+                    v.CountryCode,
+                    v.RegistrationNumber,
+                    v.VehicleCategory,
+                    v.CreatedAt,
+                    v.UpdatedAt,
+
+                    User = v.User == null ? null : new
+                    {
+                        v.User.Id,
+                        v.User.Name,
+                        v.User.Email,
+                        v.User.Mobile,
+                        v.User.Role,
+                        v.User.IsInvited
+                    }
+                }).ToList();
+
                 response.StatusCode = HttpStatusCode.OK;
-                response.Message = "Vehicles fetched successfully.";
-                response.Data = vehicles;
-                response.DataLength = vehicles.Count;
+                response.Message = pageSize <= 0
+                    ? "All vehicles retrieved successfully."
+                    : "Paged vehicle list retrieved successfully.";
+
+                response.Data = result;
+                response.DataLength = result.Count;
                 response.IsError = false;
             }
             catch (Exception ex)
@@ -220,6 +250,7 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                 response.IsError = true;
                 response.ErrorDetail = ex.Message;
             }
+
             return response;
         }
     }

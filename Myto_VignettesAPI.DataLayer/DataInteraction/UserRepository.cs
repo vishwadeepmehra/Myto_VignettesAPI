@@ -27,15 +27,16 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
 
             try
             {
-                // ✅ Validate input
-                if (model == null || string.IsNullOrWhiteSpace(model.Password))
+                // Basic null validation
+                if (model == null)
                 {
-                    response.Message = "User details or password cannot be empty.";
+                    response.Message = "Invalid request.";
                     response.StatusCode = HttpStatusCode.BadRequest;
                     response.IsError = true;
                     return response;
                 }
 
+                // Email is mandatory for both Admin + Customer
                 if (string.IsNullOrWhiteSpace(model.Email))
                 {
                     response.Message = "Email is required.";
@@ -44,7 +45,40 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // ✅ Check if email already exists
+                // Normalize role
+                string role = string.IsNullOrWhiteSpace(model.Role) ? "Customer" : model.Role;
+
+                if (role != "Admin" && role != "Customer")
+                {
+                    response.Message = "Invalid role. Allowed: Admin, Customer";
+                    response.StatusCode = HttpStatusCode.BadRequest;
+                    response.IsError = true;
+                    return response;
+                }
+
+                // Validate password only for Admin OR customer self-registration
+                bool isInvited = false;
+
+                if (role == "Admin")
+                {
+                    if (string.IsNullOrWhiteSpace(model.Password))
+                    {
+                        response.Message = "Password is required for Admin registration.";
+                        response.StatusCode = HttpStatusCode.BadRequest;
+                        response.IsError = true;
+                        return response;
+                    }
+                }
+                else if (role == "Customer")
+                {
+                    // Customer added by Admin → no password required
+                    if (string.IsNullOrWhiteSpace(model.Password))
+                    {
+                        isInvited = true;  // Added by Admin, activation later
+                    }
+                }
+
+                // Check if email exists
                 var existingUser = await _context.Users
                     .FirstOrDefaultAsync(u => u.Email == model.Email);
 
@@ -56,28 +90,34 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // ✅ Hash password
-                var hashedPassword = ToSHA256(model.Password);
+                // Hash only if password exists
+                string? hashedPassword = null;
+                if (!string.IsNullOrWhiteSpace(model.Password))
+                {
+                    hashedPassword = ToSHA256(model.Password);
+                }
 
-                // ✅ Map DTO → Entity
+                // Map DTO → Entity
                 var user = new User
                 {
                     Name = model.Name,
                     Email = model.Email,
                     Mobile = model.Mobile,
-                    PasswordHash = hashedPassword,
                     PreferredLanguage = model.PreferredLanguage,
-                    IsEmailVerified = true,
+                    PasswordHash = hashedPassword,
+                    IsEmailVerified = !isInvited,   // invited customers are not verified
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    UpdatedAt = DateTime.UtcNow,
+                    Role = role,
+                    IsInvited = isInvited
                 };
 
-                // ✅ Save to DB
+                // Save 
                 await _context.Users.AddAsync(user);
                 await _context.SaveChangesAsync();
 
-                // ✅ Build Response
-                response.Message = "User registered successfully.";
+                // Response
+                response.Message = "User created successfully.";
                 response.StatusCode = HttpStatusCode.Created;
                 response.IsError = false;
                 response.DataLength = 1;
@@ -86,8 +126,8 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     user.Id,
                     user.Name,
                     user.Email,
-                    user.Mobile,
-                    user.PreferredLanguage
+                    user.Role,
+                    user.IsInvited
                 };
             }
             catch (Exception ex)
@@ -137,31 +177,60 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
 
             try
             {
-                IQueryable<User> query = _context.Users.AsNoTracking().OrderByDescending(u => u.Id);
+                // Base query including vehicles but avoiding tracking
+                IQueryable<User> query = _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.Vehicles)
+                    .OrderByDescending(u => u.Id);
 
                 List<User> users;
 
+                // If pageSize = 0 → return all users
                 if (pageSize <= 0)
                 {
-                    // ✅ Return all users (no pagination)
                     users = await query.ToListAsync();
                 }
                 else
                 {
-                    // ✅ Apply pagination normally
                     users = await query
                         .Skip(pageIndex * pageSize)
                         .Take(pageSize)
                         .ToListAsync();
                 }
 
+                // Map to DTO to avoid exposing password, unwanted fields
+                var result = users.Select(u => new
+                {
+                    u.Id,
+                    u.Name,
+                    u.Email,
+                    u.Mobile,
+                    u.PreferredLanguage,
+                    u.Role,
+                    u.IsInvited,
+                    u.IsEmailVerified,
+                    u.CreatedAt,
+                    u.UpdatedAt,
+
+                    Vehicles = u.Vehicles.Select(v => new
+                    {
+                        v.Id,
+                        v.UserId,
+                        v.CountryCode,
+                        v.RegistrationNumber,
+                        v.VehicleCategory,
+                        v.CreatedAt,
+                        v.UpdatedAt
+                    }).ToList()
+                }).ToList();
+
                 response.Message = pageSize <= 0
                     ? "All users retrieved successfully."
                     : "Paged user list retrieved successfully.";
 
                 response.StatusCode = HttpStatusCode.OK;
-                response.Data = users;
-                response.DataLength = users.Count;
+                response.Data = result;
+                response.DataLength = result.Count;
                 response.IsError = false;
             }
             catch (Exception ex)
