@@ -27,7 +27,7 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
 
             try
             {
-                // Basic null validation
+                // Null validation
                 if (model == null)
                 {
                     response.Message = "Invalid request.";
@@ -36,7 +36,7 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // Email is mandatory for both Admin + Customer
+                // Email validation
                 if (string.IsNullOrWhiteSpace(model.Email))
                 {
                     response.Message = "Email is required.";
@@ -45,21 +45,23 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // Normalize role
-                string role = string.IsNullOrWhiteSpace(model.Role) ? "Customer" : model.Role;
+                // Normalize role (default = user)
+                string role = string.IsNullOrWhiteSpace(model.Role) ? "user" : model.Role.Trim().ToLower();
 
-                if (role != "Admin" && role != "Customer")
+                // Case-insensitive role validation
+                if (!string.Equals(role, "admin", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(role, "user", StringComparison.OrdinalIgnoreCase))
                 {
-                    response.Message = "Invalid role. Allowed: Admin, Customer";
+                    response.Message = "Invalid role. Allowed: admin, user";
                     response.StatusCode = HttpStatusCode.BadRequest;
                     response.IsError = true;
                     return response;
                 }
 
-                // Validate password only for Admin OR customer self-registration
+                // Password validation logic
                 bool isInvited = false;
 
-                if (role == "Admin")
+                if (role.Equals("admin", StringComparison.OrdinalIgnoreCase))
                 {
                     if (string.IsNullOrWhiteSpace(model.Password))
                     {
@@ -69,18 +71,18 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                         return response;
                     }
                 }
-                else if (role == "Customer")
+                else if (role.Equals("user", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Customer added by Admin → no password required
                     if (string.IsNullOrWhiteSpace(model.Password))
                     {
-                        isInvited = true;  // Added by Admin, activation later
+                        // Added by Admin → invited customer
+                        isInvited = true;
                     }
                 }
 
-                // Check if email exists
+                // Check if email exists (case-insensitive)
                 var existingUser = await _context.Users
-                    .FirstOrDefaultAsync(u => u.Email == model.Email);
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == model.Email.ToLower());
 
                 if (existingUser != null)
                 {
@@ -90,14 +92,14 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     return response;
                 }
 
-                // Hash only if password exists
+                // Password hashing (only if password exists)
                 string? hashedPassword = null;
                 if (!string.IsNullOrWhiteSpace(model.Password))
                 {
                     hashedPassword = ToSHA256(model.Password);
                 }
 
-                // Map DTO → Entity
+                // Create user entity
                 var user = new User
                 {
                     Name = model.Name,
@@ -105,18 +107,16 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     Mobile = model.Mobile,
                     PreferredLanguage = model.PreferredLanguage,
                     PasswordHash = hashedPassword,
-                    IsEmailVerified = !isInvited,   // invited customers are not verified
+                    Role = role.ToLower(),
+                    IsInvited = isInvited,
+                    IsEmailVerified = !isInvited,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    Role = role,
-                    IsInvited = isInvited
+                    UpdatedAt = DateTime.UtcNow
                 };
 
-                // Save 
                 await _context.Users.AddAsync(user);
                 await _context.SaveChangesAsync();
 
-                // Response
                 response.Message = "User created successfully.";
                 response.StatusCode = HttpStatusCode.Created;
                 response.IsError = false;
@@ -137,6 +137,7 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                 response.IsError = true;
                 response.ErrorDetail = ex.Message;
             }
+
 
             return response;
         }
