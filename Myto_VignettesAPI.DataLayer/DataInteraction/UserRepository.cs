@@ -178,15 +178,15 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
 
             try
             {
-                // Base query including vehicles but avoiding tracking
-                IQueryable<User> query = _context.Users
-                    .AsNoTracking()
+                var query = _context.Users
                     .Include(u => u.Vehicles)
-                    .OrderByDescending(u => u.Id);
+                    .OrderByDescending(u => u.Id)
+                    .AsNoTracking();
+
+                int totalRecords = await query.CountAsync();
 
                 List<User> users;
 
-                // If pageSize = 0 → return all users
                 if (pageSize <= 0)
                 {
                     users = await query.ToListAsync();
@@ -199,7 +199,6 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                         .ToListAsync();
                 }
 
-                // Map to DTO to avoid exposing password, unwanted fields
                 var result = users.Select(u => new
                 {
                     u.Id,
@@ -225,25 +224,24 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
                     }).ToList()
                 }).ToList();
 
-                response.Message = pageSize <= 0
-                    ? "All users retrieved successfully."
-                    : "Paged user list retrieved successfully.";
-
+                response.Message = "Users fetched";
                 response.StatusCode = HttpStatusCode.OK;
+                response.IsError = false;
                 response.Data = result;
                 response.DataLength = result.Count;
-                response.IsError = false;
+                response.TotalRecords = totalRecords;
             }
             catch (Exception ex)
             {
-                response.Message = "Error fetching users.";
-                response.StatusCode = HttpStatusCode.InternalServerError;
                 response.IsError = true;
+                response.Message = "Error fetching users";
                 response.ErrorDetail = ex.Message;
             }
 
             return response;
         }
+
+
         public async Task<ResponseDetail> UpdateAsync(User user)
         {
             var response = new ResponseDetail();

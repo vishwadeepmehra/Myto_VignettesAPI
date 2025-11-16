@@ -15,6 +15,7 @@ namespace Myto_VignettesAPI.AppModel.ResponseModel
         public Object? Data { get; set; }
         public bool? IsError { get; set; }
         public Object? ErrorDetail { get; set; }
+        public int TotalRecords { get; set; }
 
     }
 }

@@ -10,7 +10,6 @@ namespace Myto_VignettesAPI.AppModel.RequestModel
     public class VehicleCreateRequest
     {
        public long Id { get; set; }
-        [Required(ErrorMessage = "User ID is required.")]
         public long UserId { get; set; }
 
         [Required(ErrorMessage = "Country code is required.")]
