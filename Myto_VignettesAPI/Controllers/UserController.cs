@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Myto_VignettesAPI.AppModel.RequestModel;
 using Myto_VignettesAPI.BusinessLayer.IService;
+using Myto_VignettesAPI.BusinessLayer.Service;
 using Myto_VignettesAPI.DataLayer.AppDbContext;
 using System.Net;
 
@@ -129,5 +130,14 @@ namespace Myto_VignettesAPI.Controllers
             var response = await _userService.ExistsByEmailAsync(email);
             return StatusCode((int)response.StatusCode!, response);
         }
+
+        // 1️⃣ Get all vehicles for a specific user
+        [HttpGet("user/{userId:long}")]
+        public async Task<IActionResult> GetVehiclesByUser(long userId, int pageIndex = 0, int pageSize = 20)
+        {
+            var result = await _userService.GetAllByUserIdAsync(userId, pageIndex, pageSize);
+            return StatusCode((int)result.StatusCode!, result);
+        }
+
     }
 }

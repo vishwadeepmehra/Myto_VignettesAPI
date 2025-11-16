@@ -22,5 +22,8 @@ namespace Myto_VignettesAPI.BusinessLayer.IService
         Task<ResponseDetail> DeleteAsync(long id);
 
         Task<ResponseDetail> ExistsByEmailAsync(string email);
+
+        Task<ResponseDetail> GetAllByUserIdAsync(long userId, int pageIndex = 0, int pageSize = 20);
+
     }
 }

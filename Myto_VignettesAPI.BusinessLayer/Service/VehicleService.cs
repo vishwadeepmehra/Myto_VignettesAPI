@@ -148,5 +148,10 @@ namespace Myto_VignettesAPI.BusinessLayer.Service
 
             return response;
         }
+
+        public async Task<ResponseDetail> GetByRegistrationNumberAsync(string registrationNumber)
+        {
+            return await _unitOfWork.Vehicles.GetByRegistrationNumberAsync(registrationNumber);
+        }
     }
 }
