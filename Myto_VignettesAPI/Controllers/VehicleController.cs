@@ -111,5 +111,13 @@ namespace Myto_VignettesAPI.Controllers
             var result = await _vehicleService.GetAllByUserAsync(pageIndex, pageSize);
             return StatusCode((int)result.StatusCode!, result);
         }
+
+        // 2️⃣ Get vehicle details by registration number
+        [HttpGet("registration/{registrationNumber}")]
+        public async Task<IActionResult> GetVehicleByRegistration(string registrationNumber)
+        {
+            var result = await _vehicleService.GetByRegistrationNumberAsync(registrationNumber);
+            return StatusCode((int)result.StatusCode!, result);
+        }
     }
 }

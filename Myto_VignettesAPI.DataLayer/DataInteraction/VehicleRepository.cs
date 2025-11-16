@@ -253,5 +253,53 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
 
             return response;
         }
+
+
+        public async Task<ResponseDetail> GetByRegistrationNumberAsync(string registrationNumber)
+        {
+            var response = new ResponseDetail();
+
+            try
+            {
+                var vehicle = await _context.Vehicles
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(v => v.RegistrationNumber == registrationNumber);
+
+                if (vehicle == null)
+                {
+                    response.StatusCode = HttpStatusCode.NotFound;
+                    response.Message = "Vehicle not found.";
+                    response.IsError = true;
+                    return response;
+                }
+
+                var result = new
+                {
+                    vehicle.Id,
+                    vehicle.UserId,
+                    vehicle.CountryCode,
+                    vehicle.RegistrationNumber,
+                    vehicle.VehicleCategory,
+                    vehicle.CreatedAt,
+                    vehicle.UpdatedAt
+                };
+
+                response.StatusCode = HttpStatusCode.OK;
+                response.Message = "Vehicle details fetched successfully.";
+                response.Data = result;
+                response.DataLength = 1;
+                response.IsError = false;
+            }
+            catch (Exception ex)
+            {
+                response.StatusCode = HttpStatusCode.InternalServerError;
+                response.Message = "Error fetching vehicle details.";
+                response.ErrorDetail = ex.Message;
+                response.IsError = true;
+            }
+
+            return response;
+        }
+
     }
 }

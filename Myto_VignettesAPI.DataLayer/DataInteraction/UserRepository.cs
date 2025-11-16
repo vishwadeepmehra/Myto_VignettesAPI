@@ -342,6 +342,58 @@ namespace Myto_VignettesAPI.DataLayer.DataInteraction
 
             return response;
         }
+        public async Task<ResponseDetail> GetAllByUserIdAsync(long userId, int pageIndex = 0, int pageSize = 20)
+        {
+            var response = new ResponseDetail();
+
+            try
+            {
+                IQueryable<Vehicle> query = _context.Vehicles
+                    .AsNoTracking()
+                    .Where(v => v.UserId == userId)
+                    .OrderByDescending(v => v.CreatedAt);
+
+                List<Vehicle> vehicles;
+
+                if (pageSize <= 0)
+                {
+                    vehicles = await query.ToListAsync(); // return all
+                }
+                else
+                {
+                    vehicles = await query
+                        .Skip(pageIndex * pageSize)
+                        .Take(pageSize)
+                        .ToListAsync();
+                }
+
+                var result = vehicles.Select(v => new
+                {
+                    v.Id,
+                    v.UserId,
+                    v.CountryCode,
+                    v.RegistrationNumber,
+                    v.VehicleCategory,
+                    v.CreatedAt,
+                    v.UpdatedAt
+                }).ToList();
+
+                response.StatusCode = HttpStatusCode.OK;
+                response.Message = "Vehicles fetched successfully.";
+                response.Data = result;
+                response.DataLength = result.Count;
+                response.IsError = false;
+            }
+            catch (Exception ex)
+            {
+                response.StatusCode = HttpStatusCode.InternalServerError;
+                response.Message = "Error fetching vehicles.";
+                response.ErrorDetail = ex.Message;
+                response.IsError = true;
+            }
+
+            return response;
+        }
 
         public static string ToSHA256(string s)
         {

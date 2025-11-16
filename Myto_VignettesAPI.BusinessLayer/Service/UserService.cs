@@ -54,5 +54,10 @@ namespace Myto_VignettesAPI.BusinessLayer.Service
 
             return response;
         }
+
+        public async Task<ResponseDetail> GetAllByUserIdAsync(long userId, int pageIndex = 0, int pageSize = 20)
+        {
+            return await _unitOfWork.Users.GetAllByUserIdAsync(userId, pageIndex, pageSize);
+        }
     }
 }

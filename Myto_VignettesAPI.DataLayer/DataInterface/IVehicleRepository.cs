@@ -16,5 +16,8 @@ namespace Myto_VignettesAPI.DataLayer.DataInterface
         Task<ResponseDetail> DeleteAsync(long id);
         Task<ResponseDetail> GetByIdAsync(long id);
         Task<ResponseDetail> GetAllByUserAsync(int pageIndex = 0, int pageSize = 20);
+
+        Task<ResponseDetail> GetByRegistrationNumberAsync(string registrationNumber);
+
     }
 }
