@@ -12,16 +12,19 @@ namespace Myto_VignettesAPI.DataLayer
     {
         private readonly VignettesContext _context;
 
-        public IUserRepository Users { get; }
-        public IAuthRepository Auths { get; }
-        public IVehicleRepository Vehicles { get; }
-        public UnitOfWork(VignettesContext context, IUserRepository users, IAuthRepository auths, IVehicleRepository vehicles)
+        public UnitOfWork(VignettesContext context, IUserRepository users, IAuthRepository auths, IVehicleRepository vehicles, IVignettePurchaseRepository vignettePurchases)
         {
             _context = context;
             Users = users;
             Auths = auths;
             Vehicles = vehicles;
+            VignettePurchases = vignettePurchases;
         }
+
+        public IUserRepository Users { get; }
+        public IAuthRepository Auths { get; }
+        public IVehicleRepository Vehicles { get; }
+        public IVignettePurchaseRepository VignettePurchases { get; }
 
         public async Task<int> SaveChangesAsync()
         {

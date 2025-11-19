@@ -28,4 +28,6 @@ public partial class User
     public bool? IsInvited { get; set; }
 
     public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+
+    public virtual ICollection<VignettePurchase> VignettePurchases { get; set; } = new List<VignettePurchase>();
 }

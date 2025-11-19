@@ -13,6 +13,8 @@ namespace Myto_VignettesAPI.DataLayer
         IAuthRepository Auths { get; }
         IVehicleRepository Vehicles { get; }
 
+        IVignettePurchaseRepository VignettePurchases { get; }
+
         Task<int> SaveChangesAsync();    
 }
 }

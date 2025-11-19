@@ -20,4 +20,6 @@ public partial class Vehicle
     public DateTime? UpdatedAt { get; set; }
 
     public virtual User User { get; set; } = null!;
+
+    public virtual ICollection<VignettePurchase> VignettePurchases { get; set; } = new List<VignettePurchase>();
 }
